@@ -1,0 +1,65 @@
+`timescale 1ns / 1ps
+
+module stall_unit(
+    input        we_in,
+
+    input [2:0]  reg_add1,
+    input [2:0]  reg_add2,
+
+    input        use_rs2,
+
+    input        we_d1,
+    input [2:0]  rs_d1,
+    input [4:0]  op_d1,
+
+    input        we_d2,
+    input [2:0]  rs_d2,
+    input [4:0]  op_d2,
+
+    input        we_d3,
+    input [2:0]  rs_d3,
+    input [4:0]  op_d3,
+
+    output       stall
+);
+
+    wire haz1;
+    wire haz2;
+    wire haz3;
+
+    wire source1_haz1;
+    wire source1_haz2;
+    wire source1_haz3;
+
+    wire source2_haz1;
+    wire source2_haz2;
+    wire source2_haz3;
+
+    assign source1_haz1 = (rs_d1 == reg_add1);
+    assign source1_haz2 = (rs_d2 == reg_add1);
+    assign source1_haz3 = (rs_d3 == reg_add1);
+
+    assign source2_haz1 = use_rs2 && (rs_d1 == reg_add2);
+    assign source2_haz2 = use_rs2 && (rs_d2 == reg_add2);
+    assign source2_haz3 = use_rs2 && (rs_d3 == reg_add2);
+
+
+    assign haz1 =
+        we_d1 &&
+        (op_d1 != 5'b00000) &&
+        (source1_haz1 || source2_haz1);
+
+    assign haz2 =
+        we_d2 &&
+        (op_d2 != 5'b00000) &&
+        (source1_haz2 || source2_haz2);
+
+    assign haz3 =
+        we_d3 &&
+        (op_d3 != 5'b00000) &&
+        (source1_haz3 || source2_haz3);
+
+
+    assign stall = we_in && (haz1 || haz2 || haz3);
+
+endmodule

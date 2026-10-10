@@ -1,0 +1,27 @@
+`timescale 1ns / 1ps
+
+module register_file #(parameter N=8)(
+    input            CLK,reset,
+    input  [2:0]     reg_add1, reg_add2, reg_addw,
+    input            we,
+    input  [N-1:0]   w_data,
+    output [N-1:0]   r_data1, r_data2
+);
+    integer i;
+    reg [N-1:0] register [7:0];
+    assign r_data1 = register[reg_add1];
+    assign r_data2 = register[reg_add2];
+    always @(posedge CLK)
+     if (reset) begin
+    
+            for(i=0;i<8;i=i+1)
+                register[i] <= {N{1'b0}};
+    
+        end
+    
+        else if (we) begin
+    
+            register[reg_addw] <= w_data;
+    
+        end
+endmodule

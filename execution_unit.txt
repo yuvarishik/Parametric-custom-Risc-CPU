@@ -1,0 +1,170 @@
+`timescale 1ns / 1ps
+
+module execution_unit #(parameter N=8)(
+    input             CLK,
+    input             we,
+    input             reset,
+
+    input [2:0]       reg_add1,
+    input [2:0]       reg_add2,
+    input [2:0]       reg_addw,
+
+    input [4:0]       opcode,
+
+    input [N-1:0]     immediate,
+    input             alu_src_imm,
+
+    output [N-1:0]    Y,
+    output [3:0]      flag,
+
+    output            stall_out
+);
+
+    wire [N-1:0] A;
+    wire [N-1:0] B;
+
+    wire [N-1:0] alu_B;
+
+    wire stall;
+
+    wire use_rs2;
+
+
+    assign alu_B = alu_src_imm ? immediate : B;
+
+    assign use_rs2 =
+           (opcode == 5'b00001) ||   // ADD
+           (opcode == 5'b00010) ||   // SUB
+           (opcode == 5'b00101) ||   // AND
+           (opcode == 5'b00110) ||   // OR
+           (opcode == 5'b00111) ||   // XOR
+           (opcode == 5'b01001) ||   // SLL
+           (opcode == 5'b01010) ||   // SRL
+           (opcode == 5'b01011) ||   // SRA
+           (opcode == 5'b01100) ||   // SLT
+           (opcode == 5'b01101);     // SLTU
+
+
+    assign stall_out = stall;
+
+    reg       we_d1;
+    reg       we_d2;
+    reg       we_d3;
+
+    reg [2:0] rs_d1;
+    reg [2:0] rs_d2;
+    reg [2:0] rs_d3;
+
+    reg [4:0] op_d1;
+    reg [4:0] op_d2;
+    reg [4:0] op_d3;
+
+    // STALL UNIT
+
+    stall_unit su (
+        .we_in    (we),
+
+        .reg_add1 (reg_add1),
+        .reg_add2 (reg_add2),
+
+        .use_rs2  (use_rs2),
+
+        .we_d1    (we_d1),
+        .rs_d1    (rs_d1),
+        .op_d1    (op_d1),
+
+        .we_d2    (we_d2),
+        .rs_d2    (rs_d2),
+        .op_d2    (op_d2),
+
+        .we_d3    (we_d3),
+        .rs_d3    (rs_d3),
+        .op_d3    (op_d3),
+
+        .stall    (stall)
+    );
+
+
+    always @(posedge CLK) begin
+
+        if (reset) begin
+
+            we_d1 <= 1'b0;
+            we_d2 <= 1'b0;
+            we_d3 <= 1'b0;
+
+            rs_d1 <= 3'b000;
+            rs_d2 <= 3'b000;
+            rs_d3 <= 3'b000;
+
+            op_d1 <= 5'b00000;
+            op_d2 <= 5'b00000;
+            op_d3 <= 5'b00000;
+
+        end
+
+        else begin
+
+            we_d2 <= we_d1;
+            we_d3 <= we_d2;
+
+            rs_d2 <= rs_d1;
+            rs_d3 <= rs_d2;
+
+            op_d2 <= op_d1;
+            op_d3 <= op_d2;
+
+
+            // Insert bubble when stalled
+
+            if (stall) begin
+
+                we_d1 <= 1'b0;
+                rs_d1 <= 3'b000;
+                op_d1 <= 5'b00000;
+
+            end
+
+            else begin
+                we_d1 <= we && (opcode != 5'b00000);
+
+                rs_d1 <= reg_addw;
+                op_d1 <= opcode;
+
+            end
+
+        end
+
+    end 
+    
+    
+    // REGISTER FILE
+
+    register_file #(N) rf (
+        .CLK      (CLK),
+        .reset  (reset),
+        .reg_add1 (reg_add1),
+        .reg_add2 (reg_add2),
+        .reg_addw (rs_d3),
+        .we       (we_d3 && (op_d3 != 5'b00000)),
+        .w_data   (Y),
+        .r_data1  (A),
+        .r_data2  (B)
+    );
+
+    // ALU
+    
+    pipeline_alu #(N) alu (
+        .A      (A),
+        .B      (alu_B),
+
+        .CLK    (CLK),
+        .reset  (reset),
+
+        .opcode (stall ? 5'b00000 : opcode),
+
+        .Y      (Y),
+        .flag   (flag)
+    );
+
+endmodule

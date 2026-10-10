@@ -1,0 +1,86 @@
+`timescale 1ns / 1ps
+
+module cpu #(parameter N=8)(
+    input clk,
+    input reset,
+    output [N-1:0] Y,
+    output [3:0] flag
+);
+
+wire [4:0] opcode;
+wire [2:0] reg_add;
+wire [2:0] reg_one;
+wire [2:0] reg_two;
+wire [7:0] immediate;
+wire alu_src_imm;
+wire stall_out;
+wire stall;
+wire [4:0] opcode_d2;
+wire [2:0] rd_d2;
+wire [2:0] rs1_d2;
+wire [2:0] rs2_d2;
+wire [7:0] immediate_d2;
+wire alu_src_imm_d2;
+wire [2:0] src1_addr;
+
+assign src1_addr = alu_src_imm_d2 ? rd_d2 : rs1_d2;
+assign stall = stall_out;
+
+control_unit cu1 (
+    .clk          (clk),
+    .reset        (reset),
+    .stall        (stall),
+
+    .opcode       (opcode),
+
+    .register_add (reg_add),
+    .register_one (reg_one),
+    .register_two (reg_two),
+
+    .immediate    (immediate),
+    .alu_src_imm  (alu_src_imm)
+);
+
+execution_unit #(N) eu1 (
+    .CLK         (clk),
+    .reset       (reset),
+    .we          (1'b1),
+
+    .reg_addw    (rd_d2),
+    .reg_add1    (src1_addr),
+    .reg_add2    (rs2_d2),
+
+    .opcode      (opcode_d2),
+
+    .immediate   (immediate_d2),
+    .alu_src_imm (alu_src_imm_d2),
+
+    .Y           (Y),
+    .flag        (flag),
+
+    .stall_out   (stall_out)
+);
+
+id_ex idex1 (
+    .clk            (clk),
+    .reset          (reset),
+    .stall          (stall),
+
+    .opcode         (opcode),
+    .rd             (reg_add),
+    .rs1            (reg_one),
+    .rs2            (reg_two),
+
+    .immediate      (immediate),
+    .alu_src_imm    (alu_src_imm),
+
+    .opcode_d2      (opcode_d2),
+    .rd_d2          (rd_d2),
+    .rs1_d2         (rs1_d2),
+    .rs2_d2         (rs2_d2),
+
+    .immediate_d2   (immediate_d2),
+    .alu_src_imm_d2 (alu_src_imm_d2)
+);
+
+endmodule

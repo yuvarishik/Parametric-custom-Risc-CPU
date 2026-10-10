@@ -1,0 +1,36 @@
+`timescale 1ns / 1ps
+
+module instruction_decoder(
+    input  [15:0] fetch_ins,
+
+    output [4:0] opcode,
+    output [2:0] rd,
+    output [2:0] rs1,
+    output [2:0] rs2,
+
+    output [7:0] immediate,
+    output       alu_src_imm
+);
+
+    assign opcode = fetch_ins[15:11];
+
+    assign rd     = fetch_ins[10:8];
+
+    assign rs1    = fetch_ins[7:5];
+
+    assign rs2    = fetch_ins[4:2];
+
+    assign immediate = fetch_ins[7:0];
+
+
+    // Immediate instruction detection
+
+    assign alu_src_imm =
+           (opcode == 5'b01110) ||   // ADDI
+           (opcode == 5'b01111) ||   // SUBI
+           (opcode == 5'b10000) ||   // ANDI
+           (opcode == 5'b10001) ||   // ORI
+           (opcode == 5'b10010) ||   // XORI
+           (opcode == 5'b10011);     // LDI
+
+endmodule

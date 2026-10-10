@@ -1,0 +1,39 @@
+`timescale 1ns / 1ps
+
+module program_counter #(
+    parameter PC_WIDTH = 6,
+    parameter [PC_WIDTH-1:0] RESET_VECTOR = {PC_WIDTH{1'b0}}
+)(
+    input  clk,
+    input  reset,
+    input  stall,
+    input  branch_taken,
+    input [PC_WIDTH-1:0]   branch_target,
+    input jump_taken,
+    input [PC_WIDTH-1:0]   jump_target,
+    output reg [PC_WIDTH-1:0]   pc
+);
+
+    reg [PC_WIDTH-1:0] next_pc;
+
+    always @(*) begin
+        next_pc = pc + 1'b1;
+        if (branch_taken)
+            next_pc = branch_target;
+
+        if (jump_taken)
+            next_pc = jump_target;
+
+    end
+
+    always @(posedge clk) begin
+
+        if (reset)
+            pc <= RESET_VECTOR;
+
+        else if (!stall)
+            pc <= next_pc;
+
+    end
+
+endmodule

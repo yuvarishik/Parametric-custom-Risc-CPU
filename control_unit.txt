@@ -1,0 +1,71 @@
+`timescale 1ns / 1ps
+
+module control_unit (
+    input clk,
+    input reset,
+    input stall,
+
+    output [4:0] opcode,
+    output [2:0] register_add,
+    output [2:0] register_one,
+    output [2:0] register_two,
+
+    output [7:0] immediate,
+    output       alu_src_imm
+);
+
+    wire [5:0]  pc;
+    wire [15:0] instruction;
+    wire [15:0] instruction_d1;
+
+    // PROGRAM COUNTER
+
+    program_counter p1 (
+        .clk           (clk),
+        .reset         (reset),
+        .stall         (stall),
+
+        .branch_taken  (1'b0),
+        .branch_target (6'b000000),
+
+        .jump_taken    (1'b0),
+        .jump_target   (6'b000000),
+
+        .pc            (pc)
+    );
+
+
+    // INSTRUCTION MEMORY
+
+    instruction_memory im1 (
+        .pc          (pc),
+        .instruction (instruction)
+    );
+
+    // IF/ID PIPELINE REGISTER
+
+    instruction_fetch if1 (
+        .clk            (clk),
+        .reset          (reset),
+        .stall          (stall),
+
+        .instruction    (instruction),
+        .instruction_d1 (instruction_d1)
+    );
+
+
+    // INSTRUCTION DECODER
+
+    instruction_decoder id1 (
+        .fetch_ins    (instruction_d1),
+
+        .opcode       (opcode),
+        .rd           (register_add),
+        .rs1          (register_one),
+        .rs2          (register_two),
+
+        .immediate    (immediate),
+        .alu_src_imm  (alu_src_imm)
+    );
+
+endmodule

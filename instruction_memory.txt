@@ -1,0 +1,22 @@
+`timescale 1ns / 1ps
+
+module instruction_memory(
+    input  [5:0] pc,
+    output [15:0] instruction
+);
+
+reg [15:0] memory [0:63];
+
+integer i;
+
+initial begin
+
+    for(i=0; i<64; i=i+1)
+        memory[i] = 16'b0000000000000000;
+    $readmemb("program.mem", memory);
+
+end
+
+assign instruction = memory[pc];
+
+endmodule
